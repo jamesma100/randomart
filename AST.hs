@@ -8,20 +8,23 @@ data Node =
   Null
   deriving Show
 
-node_eval :: Node -> Node
-node_eval (Number val) = Number val
-node_eval X = X
-node_eval Y = Y
-node_eval (Add lhs rhs) =
-  case ((node_eval lhs), (node_eval rhs)) of
+node_eval :: Node -> Int -> Int -> Node
+node_eval (Number val) _ _ = Number val
+node_eval X x _ = Number x
+node_eval Y _ y = Number y
+node_eval (Add lhs rhs) x y =
+  case ((node_eval lhs x y), (node_eval rhs x y)) of
     (Number first, Number second) -> Number (first + second)
     (_, _) -> Null
-node_eval (Mult lhs rhs) =
-  case ((node_eval lhs), (node_eval rhs)) of
+node_eval (Mult lhs rhs) x y =
+  case ((node_eval lhs x y), (node_eval rhs x y)) of
     (Number first, Number second) -> Number (first * second)
     (_, _) -> Null
-node_eval (Triple first second third) = Triple first second third
-node_eval Null = Null
+node_eval (Triple first second third) x y =
+  case (node_eval first x y, node_eval second x y, node_eval third x y) of
+    (Number a, Number b, Number c) -> Triple (Number a) (Number b) (Number c)
+    (_, _, _) -> Null
+node_eval Null _ _ = Null
 
 node_print :: Node -> String
 node_print (Number val) = show val
