@@ -15,10 +15,12 @@ import Data.Fixed
 -- ghci> writeImage "../images/gray.png" grayImage
 --
 -- Alternatively, instead of passing in a function, you can interpret an AST node.
--- ghci> let grayGradAST = TripleNode (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5)) (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5)) (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5))
--- ghci> evalGrayGradAST (x, y) = nodeGet (nodeEval grayGradAST x y)
--- let grayImage = createImage 200 evalGrayGradAST
--- ghci> writeImage "../images/gray.png" grayImage
+{-
+let grayGradAST = TripleNode (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5)) (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5)) (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5))
+evalGrayGradAST (x, y) = nodeGet (nodeEval grayGradAST x y)
+let grayImage = createImage 200 evalGrayGradAST
+writeImage "../images/gray.png" grayImage
+-}
 
 -- normalizes pixel input [0, dim]^2 -> [-1, 1]^2 and flips (row, col) -> (x, y)
 mapOnto :: Int -> (Int, Int) -> (Double, Double)

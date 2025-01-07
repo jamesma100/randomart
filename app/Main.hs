@@ -20,6 +20,7 @@ randList seed = randoms (mkStdGen seed) :: [Double]
 --    c. select grammar rule using index
 main :: IO ()
 main = do
-  let seed = 420
+  let seed = 52
   let randNums = take 100 $ randList seed
+  --let tree = (treeGen grammar ruleE 8 randNums 0)
   putStrLn "hello world"
