@@ -78,52 +78,66 @@ type Grammar = [Node]
 {-
 Example:
 
-let ruleA = RuleNode [NumberNode 420, XNode, YNode]
+let ruleA = RuleNode [NumberNode 0.9, XNode, YNode]
 let ruleC = RuleNode [ruleA, AddNode ruleC ruleC, MultNode ruleC ruleC]
 let ruleE = RuleNode [TripleNode ruleC ruleC ruleC]
 let randNums = take 100 $ randList 420
 let grammar = [ruleA, ruleC, ruleE] :: Grammar
 -}
 -- non-terminal node: RuleNode [RuleNode [XNode, YNode]]
-treeGen :: Grammar -> Node -> Int -> [Double] -> Int -> Node
+treeGen :: Grammar -> Node -> Int -> [Double] -> Int -> (Node, Int)
 treeGen grammar initialRule depth randNums randIdx
-  | depth <= 0 =
-    case () of
-      () | isTerminal firstRule -> NumberNode 0.4
-         | otherwise -> NumberNode 0.4 -- TODO
-         where firstRule = (getRules initialRule) !! 0
+  | depth <= 0 && isTerminal ((getRules initialRule) !! 0) = ((getRules initialRule) !! 0, randIdx+1)
   | otherwise =
     case () of
-      () | isTerminal curNode -> curNode
+      () | isTerminal curNode -> (curNode, randIdx+1)
          | otherwise -> case curNode of
-          AddNode first second ->
-            AddNode (treeGen grammar first (depth-1) randNums (randIdx+1)) (treeGen grammar second (depth-1) randNums (randIdx+2))
-          MultNode first second ->
-            MultNode (treeGen grammar first (depth-1) randNums (randIdx+1)) (treeGen grammar second (depth-1) randNums (randIdx+2))
-          ModNode first second ->
-            ModNode (treeGen grammar first (depth-1) randNums (randIdx+1)) (treeGen grammar second (depth-1) randNums (randIdx+2))
-          TripleNode first second third ->
-            TripleNode
-              (treeGen grammar first (depth-1) randNums (randIdx+1))
-              (treeGen grammar second (depth-1) randNums (randIdx+2))
-              (treeGen grammar third (depth-1) randNums (randIdx+3))
-          GTNode lhs rhs ->
-            GTNode (treeGen grammar lhs (depth-1) randNums (randIdx+1)) (treeGen grammar rhs (depth-1) randNums (randIdx+2))
-          GTENode lhs rhs ->
-            GTENode (treeGen grammar lhs (depth-1) randNums (randIdx+1)) (treeGen grammar rhs (depth-1) randNums (randIdx+2))
-          LTNode lhs rhs ->
-            LTNode (treeGen grammar lhs (depth-1) randNums (randIdx+1)) (treeGen grammar rhs (depth-1) randNums (randIdx+2))
-          LTENode lhs rhs ->
-            LTENode (treeGen grammar lhs (depth-1) randNums (randIdx+1)) (treeGen grammar rhs (depth-1) randNums (randIdx+2))
-          IfNode ifExpr thenExpr elseExpr ->
-            IfNode
-              (treeGen grammar ifExpr (depth-1)
-              randNums (randIdx+1)) (treeGen grammar thenExpr (depth-1) randNums (randIdx+2))
-              (treeGen grammar elseExpr (depth-1) randNums (randIdx+3))
+          AddNode first second -> (AddNode (fst firstBranch) (fst secondBranch), randIdx)
+            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
+                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
+                  firstIdx = (snd firstBranch) + 1
+          MultNode first second -> (MultNode (fst firstBranch) (fst secondBranch), randIdx)
+            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1) 
+                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
+                  firstIdx = (snd firstBranch) + 1
+          ModNode first second -> (ModNode (fst firstBranch) (fst secondBranch), randIdx)
+            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1) 
+                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
+                  firstIdx = (snd firstBranch) + 1
+          TripleNode first second third -> (TripleNode (fst firstBranch) (fst secondBranch) (fst thirdBranch), randIdx)
+            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
+                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
+                  thirdBranch = treeGen grammar third (depth-1) randNums secondIdx
+                  firstIdx = (snd firstBranch) + 1
+                  secondIdx = (snd secondBranch) + 1
+          GTNode lhs rhs -> (GTNode (fst firstBranch) (fst secondBranch), randIdx)
+            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
+                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
+                  firstIdx = (snd firstBranch) + 1
+          GTENode lhs rhs -> (GTENode (fst firstBranch) (fst secondBranch), randIdx)
+            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
+                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
+                  firstIdx = (snd firstBranch) + 1
+          LTNode lhs rhs -> (LTNode (fst firstBranch) (fst secondBranch), randIdx)
+            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
+                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
+                  firstIdx = (snd firstBranch) + 1
+          LTENode lhs rhs -> (LTENode (fst firstBranch) (fst secondBranch), randIdx)
+            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
+                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
+                  firstIdx = (snd firstBranch) + 1
+          IfNode ifExpr thenExpr elseExpr -> (IfNode (fst firstBranch) (fst secondBranch) (fst thirdBranch), randIdx)
+            where firstBranch = treeGen grammar ifExpr (depth-1) randNums (randIdx+1)
+                  secondBranch = treeGen grammar thenExpr (depth-1) randNums firstIdx
+                  thirdBranch = treeGen grammar elseExpr (depth-1) randNums secondIdx
+                  firstIdx = (snd firstBranch) + 1
+                  secondIdx = (snd secondBranch) + 1
           RuleNode rules -> treeGen grammar (RuleNode rules) (depth-1) randNums (randIdx+1)
-          _ -> NullNode
-         where curNode = (getRules initialRule) !! (randRange (arity-1) (randNums !! (randIdx)))
-         where arity = getArity initialRule
+          _ -> (NullNode, randIdx)
+         where curNode =
+                if (depth > 0) then (getRules initialRule) !! (randRange (arity-1) (randNums !! (randIdx)))
+                else (getRules initialRule) !! 0
+               arity = getArity initialRule
       
   
 -- randomList :: Int -> Int -> [Int]
