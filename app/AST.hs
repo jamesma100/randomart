@@ -5,21 +5,22 @@ import System.Random
 import Control.Monad.Random
 
 data Node =
-  NumberNode Double         |
-  BoolNode Bool             |
-  XNode                     |
-  YNode                     |
-  AddNode Node Node         |
-  MultNode Node Node        |
-  ModNode Node Node         |
+  NumberNode Double |
+  BoolNode Bool |
+  RandNode |
+  XNode |
+  YNode |
+  AddNode Node Node |
+  MultNode Node Node |
+  ModNode Node Node |
   TripleNode Node Node Node |
-  GTNode Node Node          |
-  GTENode Node Node         |
-  LTNode Node Node          |
-  LTENode Node Node         |
-  IfNode Node Node Node     |
-  NormNode Node             |
-  NullNode                  |
+  GTNode Node Node |
+  GTENode Node Node |
+  LTNode Node Node |
+  LTENode Node Node |
+  IfNode Node Node Node | 
+  NormNode Node |
+  NullNode |
   RuleNode [Node]
   deriving Show
 
@@ -60,7 +61,7 @@ getRules node = case node of
   LTNode lhs  rhs -> [lhs, rhs]
   LTENode lhs rhs -> [lhs, rhs]
   IfNode ifExpr thenExpr elseExpr -> [ifExpr, thenExpr, elseExpr] -- TODO: revisit
-  _                  -> []
+  _ -> []
 
 -- maps value [0,1] to [0, index]
 randRange :: Int -> Double -> Int
@@ -78,19 +79,25 @@ type Grammar = [Node]
 {-
 Example:
 
-let ruleA = RuleNode [NumberNode 0.9, XNode, YNode]
+let randNums = take 100 $ randList 2049
+let ruleA = RuleNode [RandNode, XNode, YNode]
 let ruleC = RuleNode [ruleA, AddNode ruleC ruleC, MultNode ruleC ruleC]
 let ruleE = RuleNode [TripleNode ruleC ruleC ruleC]
-let randNums = take 100 $ randList 420
 let grammar = [ruleA, ruleC, ruleE] :: Grammar
 -}
+
 -- non-terminal node: RuleNode [RuleNode [XNode, YNode]]
 treeGen :: Grammar -> Node -> Int -> [Double] -> Int -> (Node, Int)
 treeGen grammar initialRule depth randNums randIdx
-  | depth <= 0 && isTerminal ((getRules initialRule) !! 0) = ((getRules initialRule) !! 0, randIdx+1)
+  | depth <= 0 && isTerminal ((getRules initialRule) !! 0) = 
+    case (getRules initialRule) !! 0 of
+      RandNode -> ((NumberNode (randNums !! randIdx)), randIdx + 1) -- resolve random node
+      otherwise -> ((getRules initialRule) !! 0, randIdx+1)
   | otherwise =
     case () of
-      () | isTerminal curNode -> (curNode, randIdx+1)
+      () | isTerminal curNode -> case curNode of
+          RandNode -> (NumberNode (randNums !! randIdx), randIdx+1) -- resolve random node
+          otherwise -> (curNode, randIdx+1)
          | otherwise -> case curNode of
           AddNode first second -> (AddNode (fst firstBranch) (fst secondBranch), randIdx)
             where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
@@ -148,7 +155,7 @@ nodeEval (NumberNode val) _ _ = NumberNode val
 nodeEval (BoolNode val) _ _ = BoolNode val
 nodeEval XNode x _ = NumberNode x
 nodeEval YNode _ y = NumberNode y
---nodeEval (RandNode seed) _ _ = NumberNode (head (take 1 (randomList seed)))
+-- nodeEval (RandNode randNums randIdx) _ _ = NumberNode (randNums !! randIdx)
 nodeEval (AddNode lhs rhs) x y =
   case ((nodeEval lhs x y), (nodeEval rhs x y)) of
     (NumberNode first, NumberNode second) -> NumberNode ((first + second) / 2.0)
@@ -216,57 +223,58 @@ nodeGet (TripleNode first second third) =
 nodePrint :: Node -> String
 nodePrint (NumberNode val) = show val
 nodePrint (BoolNode val) = show val
+nodePrint RandNode = "rand(0, 1)"
 nodePrint XNode = "X"
 nodePrint YNode = "Y"
 nodePrint (AddNode lhs rhs) =
-  "add("          ++
+  "add(" ++
   (nodePrint lhs) ++
-  ", "            ++
+  ", " ++
   (nodePrint rhs) ++
   ")"
 nodePrint (MultNode lhs rhs) =
-  "mult("         ++
+  "mult(" ++
   (nodePrint lhs) ++
-  ", "            ++
+  ", " ++
   (nodePrint rhs) ++
   ")"
 nodePrint (ModNode lhs rhs) =
   (nodePrint lhs) ++ 
-  " % "           ++
+  " % " ++
   (nodePrint rhs)
 nodePrint (TripleNode first second third) =
-  "("                ++
-  (nodePrint first)  ++
-  ", "               ++
+  "(" ++
+  (nodePrint first) ++
+  ", " ++
   (nodePrint second) ++
-  ", "               ++
-  (nodePrint third)  ++
+  ", " ++
+  (nodePrint third) ++
   ")"
 nodePrint (GTNode lhs rhs) =
   (nodePrint lhs) ++
-  " > "           ++
+  " > " ++
   (nodePrint rhs)
 nodePrint (GTENode lhs rhs) =
   (nodePrint lhs) ++
-  " >= "          ++
+  " >= " ++
   (nodePrint rhs)
 nodePrint (LTNode lhs rhs) =
   (nodePrint lhs) ++
-  " < "           ++
+  " < " ++
   (nodePrint rhs)
 nodePrint (LTENode lhs rhs) =
   (nodePrint lhs) ++
-  " < "           ++
+  " < " ++
   (nodePrint rhs)
 nodePrint (IfNode cond thenVal elseVal) =
-  "if ("              ++
-  (nodePrint cond)    ++
-  ") then "           ++
+  "if (" ++
+  (nodePrint cond) ++
+  ") then " ++
   (nodePrint thenVal) ++
-  " else "            ++
+  " else " ++
   (nodePrint elseVal)
 nodePrint (NormNode node) =
-  "norm( "         ++
+  "norm( " ++
   (nodePrint node) ++
   ")"
 nodePrint NullNode = "NULL"

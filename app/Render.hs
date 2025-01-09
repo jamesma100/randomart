@@ -16,10 +16,10 @@ import Data.Fixed
 --
 -- Alternatively, instead of passing in a function, you can interpret an AST node.
 {-
-let grayGradAST = TripleNode (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5)) (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5)) (MultNode (AddNode XNode (NumberNode 1.0)) (NumberNode 0.5))
-evalGrayGradAST (x, y) = nodeGet (nodeEval grayGradAST x y)
-let grayImage = createImage 200 evalGrayGradAST
-writeImage "../images/gray.png" grayImage
+let ast = fst (treeGen grammar ruleE 20 randNums 0)
+evalAst (x, y) = nodeGet (nodeEval ast x y)
+let astImage = createImage 200 evalAst
+writeImage "./images/ast_image.png" astImage
 -}
 
 -- normalizes pixel input [0, dim]^2 -> [-1, 1]^2 and flips (row, col) -> (x, y)
