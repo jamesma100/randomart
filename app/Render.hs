@@ -16,7 +16,7 @@ import Data.Fixed
 --
 -- Alternatively, instead of passing in a function, you can interpret an AST node.
 {-
-let ast = fst (treeGen grammar ruleE 20 randNums 0)
+let ast = fst (treeGen grammar ruleE 10 randNums 0)
 evalAst (x, y) = nodeGet (nodeEval ast x y)
 let astImage = createImage 200 evalAst
 writeImage "./images/ast_image.png" astImage
