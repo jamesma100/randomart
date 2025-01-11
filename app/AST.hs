@@ -73,70 +73,71 @@ type Grammar = [Node]
 --
 -- - Random number is selected based on depth
 --
-treeGen :: Grammar -> Node -> Int -> [Double] -> Int -> (Node, Int)
-treeGen grammar initialRule depth randNums randIdx
+treeGen :: Grammar -> Node -> Int -> StdGen -> (Node, StdGen)
+treeGen grammar initialRule depth stdGen
   | depth <= 0 && isTerminal ((getRules initialRule) !! 0) = 
     case (getRules initialRule) !! 0 of
-      RandNode -> (NumberNode ((randNums !! randIdx) * 2 - 1), randIdx + 1) -- resolve random node
-      otherwise -> ((getRules initialRule) !! 0, randIdx+1)
+      RandNode -> (NumberNode (randNum * 2 - 1), newGen) -- resolve random node
+      otherwise -> ((getRules initialRule) !! 0, stdGen)
   | otherwise =
     case () of
       () | isTerminal curNode -> case curNode of
-          RandNode -> (NumberNode ((randNums !! randIdx) * 2 - 1), randIdx + 1) -- resolve random node
-          otherwise -> (curNode, randIdx+1)
+          RandNode -> (NumberNode (randNum * 2 - 1), newGen) -- resolve random node
+          otherwise -> (curNode, newGen)
          | otherwise -> case curNode of
           SinNode first -> (SinNode (fst firstBranch), snd firstBranch)
-            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
+            where firstBranch = treeGen grammar first (depth-1) newGen
           CosNode first -> (CosNode (fst firstBranch), snd firstBranch)
-            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
+            where firstBranch = treeGen grammar first (depth-1) newGen
           TanNode first -> (TanNode (fst firstBranch), snd firstBranch)
-            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
+            where firstBranch = treeGen grammar first (depth-1) newGen
           AddNode first second -> (AddNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
-                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
-                  firstIdx = (snd firstBranch)
+            where firstBranch = treeGen grammar first (depth-1) newGen
+                  secondBranch = treeGen grammar second (depth-1) firstGen
+                  firstGen = (snd firstBranch)
           MultNode first second -> (MultNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1) 
-                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
-                  firstIdx = (snd firstBranch)
+            where firstBranch = treeGen grammar first (depth-1) newGen
+                  secondBranch = treeGen grammar second (depth-1) firstGen
+                  firstGen = (snd firstBranch)
           ModNode first second -> (ModNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1) 
-                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
-                  firstIdx = (snd firstBranch)
+            where firstBranch = treeGen grammar first (depth-1) newGen
+                  secondBranch = treeGen grammar second (depth-1) firstGen
+                  firstGen = (snd firstBranch)
           TripleNode first second third -> (TripleNode (fst firstBranch) (fst secondBranch) (fst thirdBranch), snd thirdBranch)
-            where firstBranch = treeGen grammar first (depth-1) randNums (randIdx+1)
-                  secondBranch = treeGen grammar second (depth-1) randNums firstIdx
-                  thirdBranch = treeGen grammar third (depth-1) randNums secondIdx
-                  firstIdx = (snd firstBranch)
-                  secondIdx = (snd secondBranch)
+            where firstBranch = treeGen grammar first (depth-1) newGen
+                  secondBranch = treeGen grammar second (depth-1) firstGen
+                  thirdBranch = treeGen grammar third (depth-1) secondGen
+                  firstGen = (snd firstBranch)
+                  secondGen = (snd secondBranch)
           GTNode lhs rhs -> (GTNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
-                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
-                  firstIdx = (snd firstBranch)
+            where firstBranch = treeGen grammar lhs (depth-1) newGen
+                  secondBranch = treeGen grammar rhs (depth-1) firstGen
+                  firstGen = (snd firstBranch)
           GTENode lhs rhs -> (GTENode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
-                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
-                  firstIdx = (snd firstBranch)
+            where firstBranch = treeGen grammar lhs (depth-1) newGen
+                  secondBranch = treeGen grammar rhs (depth-1) firstGen
+                  firstGen = (snd firstBranch)
           LTNode lhs rhs -> (LTNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
-                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
-                  firstIdx = (snd firstBranch)
+            where firstBranch = treeGen grammar lhs (depth-1) newGen
+                  secondBranch = treeGen grammar rhs (depth-1) firstGen
+                  firstGen = (snd firstBranch)
           LTENode lhs rhs -> (LTENode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) randNums (randIdx+1)
-                  secondBranch = treeGen grammar rhs (depth-1) randNums firstIdx
-                  firstIdx = (snd firstBranch)
+            where firstBranch = treeGen grammar lhs (depth-1) newGen
+                  secondBranch = treeGen grammar rhs (depth-1) firstGen
+                  firstGen = (snd firstBranch)
           IfNode ifExpr thenExpr elseExpr -> (IfNode (fst firstBranch) (fst secondBranch) (fst thirdBranch), snd thirdBranch)
-            where firstBranch = treeGen grammar ifExpr (depth-1) randNums (randIdx+1)
-                  secondBranch = treeGen grammar thenExpr (depth-1) randNums firstIdx
-                  thirdBranch = treeGen grammar elseExpr (depth-1) randNums secondIdx
-                  firstIdx = (snd firstBranch)
-                  secondIdx = (snd secondBranch)
-          RuleNode rules -> treeGen grammar (RuleNode rules) (depth-1) randNums (randIdx+1)
-          _ -> (NullNode, randIdx)
+            where firstBranch = treeGen grammar ifExpr (depth-1) newGen
+                  secondBranch = treeGen grammar thenExpr (depth-1) firstGen
+                  thirdBranch = treeGen grammar elseExpr (depth-1) secondGen
+                  firstGen = (snd firstBranch)
+                  secondGen = (snd secondBranch)
+          RuleNode rules -> treeGen grammar (RuleNode rules) (depth-1) newGen
+          _ -> (NullNode, stdGen)
          where curNode =
-                if (depth > 0) then (getRules initialRule) !! (randRange (max 0 (arity-1)) (randNums !! (randIdx)))
+                if (depth > 0) then (getRules initialRule) !! (randRange (max 0 (arity-1)) randNum)
                 else (getRules initialRule) !! 0
                arity = getArity initialRule
+  where (randNum, newGen) = uniformR (0::Double, 1::Double) stdGen
       
   
 -- randomList :: Int -> Int -> [Int]
