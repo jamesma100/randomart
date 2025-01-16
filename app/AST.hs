@@ -2,7 +2,6 @@ module AST where
 import Data.Fixed
 import Data.List
 import System.Random
-import Control.Monad.Random
 
 data Node =
   NumberNode Double |

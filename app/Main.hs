@@ -1,26 +1,52 @@
 module Main where
 
---import Control.Monad.Random
+import Control.Monad
 import Prelude as P
 import Graphics.Image as I
 import System.Random
 import AST
 import Render
+import System.Environment
+import System.Exit
+import Data.Char
 
-randList :: Int -> [Double]
-randList seed = randoms (mkStdGen seed) :: [Double]
+usage :: IO ()
+usage = do
+  putStrLn "Usage:\n  randomart -h\n  randomart <filepath> <seed>"
 
-
--- Ideas for getting random rule using IO Monad
---
--- 1. generate sizable list of random values beforehand [0, 1] - has to be done w/i IO monad
--- 2. pass into type constructor, then
---    a. select a random number from list
---    b. use `randRange` to map to [0, arity-1], getting an index
---    c. select grammar rule using index
 main :: IO ()
 main = do
-  let seed = 52
-  let randNums = take 100 $ randList seed
-  --let tree = (treeGen grammar ruleE 8 randNums 0)
-  putStrLn "hello world"
+  args <- getArgs
+  when (length args < 1)
+    (do putStrLn "Error: incorrect arguments."
+        usage
+        exitFailure)
+  when (head args == "-h")
+    (do usage
+        exitSuccess)
+  when (length args /= 2)
+    (do putStrLn "Error: incorrect arguments."
+        usage
+        exitFailure)
+  let filePath = args !! 0
+  let seed = P.sum $ P.map ord (args !! 1)
+  let stdGen = mkStdGen seed
+
+  let ruleA = RuleNode [RandNode, XNode, YNode]
+  let ruleC = RuleNode [ruleA,
+                        ruleA,
+                        SinNode (AddNode ruleC ruleC),
+                        CosNode (AddNode ruleC ruleC),
+                        TanNode (AddNode ruleC ruleC),
+                        SinNode (MultNode ruleC ruleC),
+                        CosNode (MultNode ruleC ruleC),
+                        TanNode (MultNode ruleC ruleC)]
+  let ruleE = RuleNode [TripleNode ruleC ruleC ruleC]
+  let grammar = [ruleA, ruleC, ruleE] :: Grammar
+  
+  let depth = 20
+  let dim = 200
+  let ast = fst (treeGen grammar ruleE depth stdGen)
+  let evalAst (x, y) = nodeGet (nodeEval ast x y)
+  let astImage = createImage dim evalAst
+  writeImage filePath astImage
