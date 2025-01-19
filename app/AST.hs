@@ -15,6 +15,7 @@ data Node =
   AddNode Node Node |
   MultNode Node Node |
   ModNode Node Node |
+  ExpNode Double Node |
   TripleNode Node Node Node |
   GTNode Node Node |
   GTENode Node Node |
@@ -39,6 +40,7 @@ isRule node = case node of
   AddNode first second -> isRule first || isRule second
   MultNode first second -> isRule first || isRule second
   ModNode first second -> isRule first || isRule second
+  ExpNode _ second -> isRule second
   TripleNode first second third -> isRule first || isRule second || isRule third
   GTNode lhs rhs -> isRule lhs || isRule rhs
   GTENode lhs rhs -> isRule lhs || isRule rhs
@@ -102,6 +104,8 @@ treeGen grammar initialRule depth stdGen
             where firstBranch = treeGen grammar first (depth-1) newGen
                   secondBranch = treeGen grammar second (depth-1) firstGen
                   firstGen = (snd firstBranch)
+          ExpNode base exp -> (ExpNode base (fst firstBranch), snd firstBranch)
+            where firstBranch = treeGen grammar exp (depth-1) newGen
           TripleNode first second third -> (TripleNode (fst firstBranch) (fst secondBranch) (fst thirdBranch), snd thirdBranch)
             where firstBranch = treeGen grammar first (depth-1) newGen
                   secondBranch = treeGen grammar second (depth-1) firstGen
@@ -169,8 +173,14 @@ nodeEval (MultNode lhs rhs) x y =
     (_, _) -> NullNode
 nodeEval (ModNode lhs rhs) x y =
   case (nodeEval lhs x y, nodeEval rhs x y) of
-    (NumberNode first, NumberNode second) -> NumberNode (mod' first second)
+    (NumberNode first, NumberNode second) ->
+      if second > 0 then NumberNode (mod' first second)
+      else NumberNode 0
     (_, _) -> NullNode
+nodeEval (ExpNode base exp) x y =
+  case (nodeEval exp x y) of
+    (NumberNode exp) -> NumberNode (base ** exp)
+    _ -> NullNode
 nodeEval (TripleNode first second third) x y =
   case (nodeEval first x y, nodeEval second x y, nodeEval third x y) of
     (NumberNode a, NumberNode b, NumberNode c) ->
@@ -202,9 +212,9 @@ nodeEval (LTENode lhs rhs) x y =
     (_, _) -> NullNode
 nodeEval (IfNode condExpr thenExpr elseExpr) x y =
   case (nodeEval condExpr x y, nodeEval thenExpr x y, nodeEval elseExpr x y) of
-    (BoolNode condVal, TripleNode a b c, TripleNode i j k) ->
-      if condVal then (TripleNode a b c)
-      else (TripleNode i j k)
+    (BoolNode condVal, NumberNode a, NumberNode b) ->
+      if condVal then (NumberNode a)
+      else (NumberNode b)
     (_, _, _) -> NullNode
 --normalizes [-1, 1] -> [0, 1]
 nodeEval (NormNode node) x y =
@@ -257,6 +267,11 @@ nodePrint (ModNode lhs rhs) =
   (nodePrint lhs) ++ 
   " % " ++
   (nodePrint rhs)
+nodePrint (ExpNode base exp) =
+  (show base) ++
+  "^(" ++
+  (nodePrint exp) ++ 
+  ")"
 nodePrint (TripleNode first second third) =
   "(" ++
   (nodePrint first) ++

@@ -35,16 +35,16 @@ main = do
   let ruleA = RuleNode [RandNode, XNode, YNode]
   let ruleC = RuleNode [ruleA,
                         ruleA,
-                        SinNode (AddNode ruleC ruleC),
-                        CosNode (AddNode ruleC ruleC),
-                        TanNode (AddNode ruleC ruleC),
-                        SinNode (MultNode ruleC ruleC),
-                        CosNode (MultNode ruleC ruleC),
-                        TanNode (MultNode ruleC ruleC)]
+                        AddNode ruleC ruleC,
+                        AddNode ruleC ruleC,
+                        AddNode ruleC ruleC,
+                        MultNode ruleC ruleC,
+                        MultNode ruleC ruleC,
+                        MultNode ruleC ruleC]
   let ruleE = RuleNode [TripleNode ruleC ruleC ruleC]
   let grammar = [ruleA, ruleC, ruleE] :: Grammar
   
-  let depth = 20
+  let depth = 24
   let dim = 200
   let ast = fst (treeGen grammar ruleE depth stdGen)
   let evalAst (x, y) = nodeGet (nodeEval ast x y)
