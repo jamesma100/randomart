@@ -11,14 +11,16 @@ import System.Console.GetOpt
 import Data.Char
 
 data Options = Options
-  { optDepth :: Int
+  { optHelp :: Bool
+  , optDepth :: Int
   , optPixels :: Int
   , optOutput :: String
   , optSeed :: Int
   } deriving Show
 
 defaultOpts = Options
-  { optDepth = 10
+  { optHelp = False
+  , optDepth = 25
   , optPixels = 200
   , optOutput = "out.png"
   , optSeed = 20250101
@@ -27,7 +29,8 @@ defaultOpts = Options
 
 opts :: [OptDescr (Options -> Options)]
 opts =
-  [Option ['d'] ["depth"] (ReqArg (\ d opts -> opts {optDepth = read d}) "DEPTH") "depth of tree"
+  [Option ['h'] ["help"] (NoArg (\ opts -> opts {optHelp = True })) "show help"
+  ,Option ['d'] ["depth"] (ReqArg (\ d opts -> opts {optDepth = read d}) "DEPTH") "depth of tree"
   ,Option ['p'] ["pixels"] (ReqArg (\ p opts -> opts {optPixels = read p} ) "PIXELS") "pixel dimensions"
   ,Option ['o'] ["output"] (ReqArg (\ o opts -> opts {optOutput = o}) "OUTPUT") "output filepath"
   ,Option ['s'] ["seed"] (ReqArg (\ s opts -> opts {optSeed = P.sum $ P.map ord s}) "SEED") "initial seed"]
@@ -56,14 +59,21 @@ grammar = [ruleA, ruleC, ruleE] :: Grammar
 -- grammar def end
 
 usage :: String
-usage = "Usage:\n  randomart -h\n  randomart [--d <depth>] [--p <pixels>] [-o <filepath>] [-s <seed>]"
+usage = "Usage:\n  randomart -h\n  randomart [-d <depth>] [-p <pixels>] [-o <filepath>] [-s <seed>]"
+
+debugFlags :: Options -> IO()
+debugFlags flags = do putStrLn $ "Received flags: " ++ (show flags)
 
 main :: IO ()
 main = do
   flags <- getArgs >>= parseArgs
-  putStrLn $ "Received flags: " ++ show flags
+  case (optHelp flags) of
+    True -> do putStrLn usage
+               exitWith ExitSuccess
+    _ -> pure ()
   let stdGen = mkStdGen (optSeed flags)
   let ast = fst (treeGen grammar ruleE (optDepth flags) stdGen)
   let evalAst (x, y) = nodeGet (nodeEval ast x y)
   let astImage = createImage (optPixels flags) evalAst
   writeImage (optOutput flags) astImage
+  putStrLn $ "Success! Image generated under: " ++ (optOutput flags)
