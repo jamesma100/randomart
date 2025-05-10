@@ -3,6 +3,8 @@ import Data.Fixed
 import Data.List
 import System.Random
 
+-- TODO: try using GADTs here to separate nodes by their type s.t. it doesn't rely on
+-- the user-provided grammar to enforce type safety
 data Node =
   NumberNode Double |
   BoolNode Bool |
@@ -34,14 +36,14 @@ isTerminal node = not (isRule node) && not (elem True [isRule child | child <- g
 isRule :: Node -> Bool
 isRule node = case node of
   RuleNode _ -> True
-  SinNode first -> isRule first
-  CosNode first -> isRule first
-  TanNode first -> isRule first
-  AddNode first second -> isRule first || isRule second
-  MultNode first second -> isRule first || isRule second
-  ModNode first second -> isRule first || isRule second
-  ExpNode _ second -> isRule second
-  TripleNode first second third -> isRule first || isRule second || isRule third
+  SinNode a -> isRule a
+  CosNode a -> isRule a
+  TanNode a -> isRule a
+  AddNode a b -> isRule a || isRule b
+  MultNode a b -> isRule a || isRule b
+  ModNode a b -> isRule a || isRule b
+  ExpNode _ b -> isRule b
+  TripleNode a b c -> isRule a || isRule b || isRule c
   GTNode lhs rhs -> isRule lhs || isRule rhs
   GTENode lhs rhs -> isRule lhs || isRule rhs
   LTNode lhs rhs  -> isRule lhs || isRule rhs
@@ -86,54 +88,54 @@ treeGen grammar initialRule depth stdGen
           RandNode -> (NumberNode (randNum * 2 - 1), newGen) -- resolve random node
           otherwise -> (curNode, newGen)
          | otherwise -> case curNode of
-          SinNode first -> (SinNode (fst firstBranch), snd firstBranch)
-            where firstBranch = treeGen grammar first (depth-1) newGen
-          CosNode first -> (CosNode (fst firstBranch), snd firstBranch)
-            where firstBranch = treeGen grammar first (depth-1) newGen
-          TanNode first -> (TanNode (fst firstBranch), snd firstBranch)
-            where firstBranch = treeGen grammar first (depth-1) newGen
-          AddNode first second -> (AddNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar first (depth-1) newGen
-                  secondBranch = treeGen grammar second (depth-1) firstGen
-                  firstGen = (snd firstBranch)
-          MultNode first second -> (MultNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar first (depth-1) newGen
-                  secondBranch = treeGen grammar second (depth-1) firstGen
-                  firstGen = (snd firstBranch)
-          ModNode first second -> (ModNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar first (depth-1) newGen
-                  secondBranch = treeGen grammar second (depth-1) firstGen
-                  firstGen = (snd firstBranch)
-          ExpNode base exp -> (ExpNode base (fst firstBranch), snd firstBranch)
-            where firstBranch = treeGen grammar exp (depth-1) newGen
-          TripleNode first second third -> (TripleNode (fst firstBranch) (fst secondBranch) (fst thirdBranch), snd thirdBranch)
-            where firstBranch = treeGen grammar first (depth-1) newGen
-                  secondBranch = treeGen grammar second (depth-1) firstGen
-                  thirdBranch = treeGen grammar third (depth-1) secondGen
-                  firstGen = (snd firstBranch)
-                  secondGen = (snd secondBranch)
-          GTNode lhs rhs -> (GTNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) newGen
-                  secondBranch = treeGen grammar rhs (depth-1) firstGen
-                  firstGen = (snd firstBranch)
-          GTENode lhs rhs -> (GTENode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) newGen
-                  secondBranch = treeGen grammar rhs (depth-1) firstGen
-                  firstGen = (snd firstBranch)
-          LTNode lhs rhs -> (LTNode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) newGen
-                  secondBranch = treeGen grammar rhs (depth-1) firstGen
-                  firstGen = (snd firstBranch)
-          LTENode lhs rhs -> (LTENode (fst firstBranch) (fst secondBranch), snd secondBranch)
-            where firstBranch = treeGen grammar lhs (depth-1) newGen
-                  secondBranch = treeGen grammar rhs (depth-1) firstGen
-                  firstGen = (snd firstBranch)
-          IfNode ifExpr thenExpr elseExpr -> (IfNode (fst firstBranch) (fst secondBranch) (fst thirdBranch), snd thirdBranch)
-            where firstBranch = treeGen grammar ifExpr (depth-1) newGen
-                  secondBranch = treeGen grammar thenExpr (depth-1) firstGen
-                  thirdBranch = treeGen grammar elseExpr (depth-1) secondGen
-                  firstGen = (snd firstBranch)
-                  secondGen = (snd secondBranch)
+          SinNode a -> (SinNode (fst branch1), snd branch1)
+            where branch1 = treeGen grammar a (depth-1) newGen
+          CosNode a -> (CosNode (fst branch1), snd branch1)
+            where branch1 = treeGen grammar a (depth-1) newGen
+          TanNode a -> (TanNode (fst branch1), snd branch1)
+            where branch1 = treeGen grammar a (depth-1) newGen
+          AddNode a b -> (AddNode (fst branch1) (fst branch2), snd branch2)
+            where branch1 = treeGen grammar a (depth-1) newGen
+                  branch2 = treeGen grammar b (depth-1) gen1
+                  gen1 = (snd branch1)
+          MultNode a b -> (MultNode (fst branch1) (fst branch2), snd branch2)
+            where branch1 = treeGen grammar a (depth-1) newGen
+                  branch2 = treeGen grammar b (depth-1) gen1
+                  gen1 = (snd branch1)
+          ModNode a b -> (ModNode (fst branch1) (fst branch2), snd branch2)
+            where branch1 = treeGen grammar a (depth-1) newGen
+                  branch2 = treeGen grammar b (depth-1) gen1
+                  gen1 = (snd branch1)
+          ExpNode base exp -> (ExpNode base (fst branch1), snd branch1)
+            where branch1 = treeGen grammar exp (depth-1) newGen
+          TripleNode a b c -> (TripleNode (fst branch1) (fst branch2) (fst branch3), snd branch3)
+            where branch1 = treeGen grammar a (depth-1) newGen
+                  branch2 = treeGen grammar b (depth-1) gen1
+                  branch3 = treeGen grammar c (depth-1) gen2
+                  gen1 = (snd branch1)
+                  gen2 = (snd branch2)
+          GTNode lhs rhs -> (GTNode (fst branch1) (fst branch2), snd branch2)
+            where branch1 = treeGen grammar lhs (depth-1) newGen
+                  branch2 = treeGen grammar rhs (depth-1) gen1
+                  gen1 = (snd branch1)
+          GTENode lhs rhs -> (GTENode (fst branch1) (fst branch2), snd branch2)
+            where branch1 = treeGen grammar lhs (depth-1) newGen
+                  branch2 = treeGen grammar rhs (depth-1) gen1
+                  gen1 = (snd branch1)
+          LTNode lhs rhs -> (LTNode (fst branch1) (fst branch2), snd branch2)
+            where branch1 = treeGen grammar lhs (depth-1) newGen
+                  branch2 = treeGen grammar rhs (depth-1) gen1
+                  gen1 = (snd branch1)
+          LTENode lhs rhs -> (LTENode (fst branch1) (fst branch2), snd branch2)
+            where branch1 = treeGen grammar lhs (depth-1) newGen
+                  branch2 = treeGen grammar rhs (depth-1) gen1
+                  gen1 = (snd branch1)
+          IfNode ifExpr thenExpr elseExpr -> (IfNode (fst branch1) (fst branch2) (fst branch3), snd branch3)
+            where branch1 = treeGen grammar ifExpr (depth-1) newGen
+                  branch2 = treeGen grammar thenExpr (depth-1) gen1
+                  branch3 = treeGen grammar elseExpr (depth-1) gen2
+                  gen1 = (snd branch1)
+                  gen2 = (snd branch2)
           RuleNode rules -> treeGen grammar (RuleNode rules) (depth-1) newGen
           _ -> (NullNode, stdGen)
          where curNode =
@@ -165,26 +167,26 @@ nodeEval XNode x _ = NumberNode x
 nodeEval YNode _ y = NumberNode y
 nodeEval (AddNode lhs rhs) x y =
   case ((nodeEval lhs x y), (nodeEval rhs x y)) of
-    (NumberNode first, NumberNode second) -> NumberNode (first + second)
+    (NumberNode a, NumberNode b) -> NumberNode (a + b)
     (_, _) -> NullNode
 nodeEval (MultNode lhs rhs) x y =
   case ((nodeEval lhs x y), (nodeEval rhs x y)) of
-    (NumberNode first, NumberNode second) -> NumberNode (first * second)
+    (NumberNode a, NumberNode b) -> NumberNode (a * b)
     (_, _) -> NullNode
 nodeEval (ModNode lhs rhs) x y =
   case (nodeEval lhs x y, nodeEval rhs x y) of
-    (NumberNode first, NumberNode second) ->
-      if second > 0 then NumberNode (mod' first second)
+    (NumberNode a, NumberNode b) ->
+      if b > 0 then NumberNode (mod' a b)
       else NumberNode 0
     (_, _) -> NullNode
 nodeEval (ExpNode base exp) x y =
   case (nodeEval exp x y) of
     (NumberNode exp) -> NumberNode (base ** exp)
     _ -> NullNode
-nodeEval (TripleNode first second third) x y =
-  case (nodeEval first x y, nodeEval second x y, nodeEval third x y) of
-    (NumberNode a, NumberNode b, NumberNode c) ->
-      TripleNode (NumberNode a) (NumberNode b) (NumberNode c)
+nodeEval (TripleNode a b c) x y =
+  case (nodeEval a x y, nodeEval b x y, nodeEval c x y) of
+    (NumberNode valA, NumberNode valB, NumberNode valC) ->
+      TripleNode (NumberNode valA) (NumberNode valB) (NumberNode valC)
     (_, _, _) -> NullNode
 nodeEval (GTNode lhs rhs) x y = 
   case (nodeEval lhs x y, nodeEval rhs x y) of
@@ -227,27 +229,27 @@ nodeEval NullNode _ _ = NullNode
   
 
 nodeGet :: Node -> (Double, Double, Double)
-nodeGet (TripleNode first second third) =
-  case (first, second, third) of
-    (NumberNode firstVal, NumberNode secondVal, NumberNode thirdVal) ->
-      (firstVal, secondVal, thirdVal)
+nodeGet (TripleNode a b c) =
+  case (a, b, c) of
+    (NumberNode valA, NumberNode valB, NumberNode valC) ->
+      (valA, valB, valC)
     (_, _, _) -> (0.0, 0.0, 0.0)
 
 nodePrint :: Node -> String
 nodePrint (NumberNode val) = show val
 nodePrint (BoolNode val) = show val
 nodePrint RandNode = "rand(0, 1)"
-nodePrint (SinNode first) =
+nodePrint (SinNode a) =
   "sin(" ++
-  (nodePrint first) ++
+  (nodePrint a) ++
   ")"
-nodePrint (CosNode first) =
+nodePrint (CosNode a) =
   "cos(" ++
-  (nodePrint first) ++
+  (nodePrint a) ++
   ")"
-nodePrint (TanNode first) =
+nodePrint (TanNode a) =
   "tan(" ++
-  (nodePrint first) ++
+  (nodePrint a) ++
   ")"
 nodePrint XNode = "X"
 nodePrint YNode = "Y"
@@ -272,13 +274,13 @@ nodePrint (ExpNode base exp) =
   "^(" ++
   (nodePrint exp) ++ 
   ")"
-nodePrint (TripleNode first second third) =
+nodePrint (TripleNode a b c) =
   "(" ++
-  (nodePrint first) ++
+  (nodePrint a) ++
   ", " ++
-  (nodePrint second) ++
+  (nodePrint b) ++
   ", " ++
-  (nodePrint third) ++
+  (nodePrint c) ++
   ")"
 nodePrint (GTNode lhs rhs) =
   (nodePrint lhs) ++
